@@ -7,10 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.ContextMenu;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,12 +18,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import br.senai.sp.informatica.todolist.R;
+import br.senai.sp.informatica.todolist.modelo.Subtarefa;
+import br.senai.sp.informatica.todolist.modelo.Tarefa;
+import br.senai.sp.informatica.todolist.rest.TarefaRest;
 
 /**
  * Created by sn1022208 on 23/01/2017.
@@ -39,13 +37,19 @@ public class NovaTarefaActivity extends AppCompatActivity implements DialogInter
     AlertDialog dialogSubtarefa;
     EditText editInput;
     TextView textView;
+    List<Subtarefa> subtarefas = new ArrayList<>();
+    ArrayAdapter<Subtarefa> adapterSubtarefa;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nova_lista);
 
+        adapterSubtarefa = new ArrayAdapter<Subtarefa>(this, android.R.layout.simple_list_item_1, subtarefas);
+
         listSubtarefas = (ListView) findViewById(R.id.listSubtarefas);
+        listSubtarefas.setAdapter(adapterSubtarefa);
+        registerForContextMenu(listSubtarefas);
 
         editTitulo = (EditText) findViewById(R.id.editTitulo);
 
@@ -67,7 +71,7 @@ public class NovaTarefaActivity extends AppCompatActivity implements DialogInter
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                dialogSubtarefa.show();
             }
         });
 
@@ -78,7 +82,11 @@ public class NovaTarefaActivity extends AppCompatActivity implements DialogInter
         switch (i) {
             case DialogInterface.BUTTON_POSITIVE:
                 if (!editInput.getText().toString().trim().isEmpty()) {
-
+                    Subtarefa subtarefa = new Subtarefa();
+                    subtarefa.setDescricao(editInput.getText().toString().trim());
+                    subtarefas.add(subtarefa);
+                    editInput.setText("");
+                    listSubtarefas.invalidateViews();
                 } else {
                     Toast.makeText(this, R.string.informe_descricao, Toast.LENGTH_SHORT).show();
                 }
@@ -96,7 +104,10 @@ public class NovaTarefaActivity extends AppCompatActivity implements DialogInter
     public boolean onContextItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.item_excluir:
-
+                AdapterView.AdapterContextMenuInfo info =
+                        (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+                subtarefas.remove(info.position);
+                listSubtarefas.invalidateViews();
         }
         return super.onContextItemSelected(item);
     }
@@ -112,7 +123,10 @@ public class NovaTarefaActivity extends AppCompatActivity implements DialogInter
         switch (item.getItemId()) {
             case R.id.item_salvar:
                 if (!editTitulo.getText().toString().trim().isEmpty()) {
-
+                    Tarefa tarefa = new Tarefa();
+                    tarefa.setTitulo(editTitulo.getText().toString());
+                    tarefa.setSubtarefas(subtarefas);
+                    new TaskNovaTarefa().execute(tarefa);
                 } else {
                     Toast.makeText(this, R.string.informe_titulo, Toast.LENGTH_SHORT).show();
                 }
@@ -122,4 +136,27 @@ public class NovaTarefaActivity extends AppCompatActivity implements DialogInter
     }
 
 
+    public class TaskNovaTarefa extends AsyncTask<Tarefa, Void, Object> {
+        @Override
+        protected Object doInBackground(Tarefa... params) {
+            try {
+                Tarefa tarefa = params[0];
+                TarefaRest.novaTarefa(tarefa, getBaseContext());
+                return null;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return e;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            if (o != null) {
+                Exception erro = (Exception) o;
+                Toast.makeText(getBaseContext(), erro.getMessage(), Toast.LENGTH_SHORT).show();
+            } else {
+                finish();
+            }
+        }
+    }
 }

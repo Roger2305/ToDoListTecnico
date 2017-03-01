@@ -12,7 +12,8 @@ import android.preference.PreferenceManager;
 public class PrefsUtil {
     public static String getEndereco(Context context) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        return "http://" + preferences.getString("endereco", "192.168.0.1");
+        return "http://192.168.2.121/ToDoListManha";
+        //return "http://" + preferences.getString("endereco", "192.168.0.1");
     }
 
     public static void saveToken(Context context, String token) {
